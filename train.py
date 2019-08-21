@@ -242,17 +242,18 @@ def eval_one_epoch(sess, ops, test_writer):
         current_data = current_data[:,0:NUM_POINT,:]
         current_label = np.squeeze(current_label)
 
-        current_data = rotationService.get_images_rotation_according_to_rotation_label(current_data)
-        current_label = list(range(ROTATION_NUMBER))
         file_size = current_data.shape[0]
         num_batches = file_size // BATCH_SIZE
         
         for batch_idx in range(num_batches):
             start_idx = batch_idx * BATCH_SIZE
             end_idx = (batch_idx+1) * BATCH_SIZE
+            current_data = current_data[start_idx:end_idx, :, :]
+            current_data = rotationService.get_images_rotation_according_to_rotation_label(current_data)
+            current_label = list(range(ROTATION_NUMBER))
 
-            feed_dict = {ops['pointclouds_pl']: current_data[start_idx:end_idx, :, :],
-                         ops['labels_pl']: current_label[start_idx:end_idx],
+            feed_dict = {ops['pointclouds_pl']: current_data,
+                         ops['labels_pl']: current_label,
                          ops['is_training_pl']: is_training}
             summary, step, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
                 ops['loss'], ops['pred']], feed_dict=feed_dict)
