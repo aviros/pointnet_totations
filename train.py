@@ -183,8 +183,8 @@ def train_one_epoch(sess, ops, train_writer):
     # Shuffle train files
     train_file_idxs = np.arange(0, len(TRAIN_FILES))
     np.random.shuffle(train_file_idxs)
-    
-    for fn in range(len(TRAIN_FILES)):
+    train_files_number = len(TRAIN_FILES)
+    for fn in range(train_files_number):
         fn=4
         log_string('----' + str(fn) + '-----')
         current_data, current_label = provider.loadDataFile(TRAIN_FILES[train_file_idxs[fn]])
@@ -200,6 +200,7 @@ def train_one_epoch(sess, ops, train_writer):
         loss_sum = 0
        
         for batch_idx in range(num_batches):
+
             start_idx = batch_idx * BATCH_SIZE
             end_idx = (batch_idx+1) * BATCH_SIZE
             
@@ -250,15 +251,16 @@ def eval_one_epoch(sess, ops, test_writer):
             end_idx = (batch_idx+1) * BATCH_SIZE
             current_data = current_data[start_idx:end_idx, :, :]
             current_data = rotationService.get_images_rotation_according_to_rotation_label(current_data)
-            current_label = list(range(ROTATION_NUMBER))
+            rotation_labels = list(range(ROTATION_NUMBER))
+            rotation_labels = np.repeat(rotation_labels, end_idx - start_idx)
 
             feed_dict = {ops['pointclouds_pl']: current_data,
-                         ops['labels_pl']: current_label,
+                         ops['labels_pl']: rotation_labels,
                          ops['is_training_pl']: is_training}
             summary, step, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
                 ops['loss'], ops['pred']], feed_dict=feed_dict)
             pred_val = np.argmax(pred_val, 1)
-            correct = np.sum(pred_val == current_label[start_idx:end_idx])
+            correct = np.sum(pred_val == rotation_labels)
             total_correct += correct
             total_seen += BATCH_SIZE
             loss_sum += (loss_val*BATCH_SIZE)
