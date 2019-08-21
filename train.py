@@ -185,6 +185,7 @@ def train_one_epoch(sess, ops, train_writer):
     np.random.shuffle(train_file_idxs)
     
     for fn in range(len(TRAIN_FILES)):
+        fn=4
         log_string('----' + str(fn) + '-----')
         current_data, current_label = provider.loadDataFile(TRAIN_FILES[train_file_idxs[fn]])
         current_data = current_data[:,0:NUM_POINT,:]
