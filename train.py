@@ -27,7 +27,8 @@ parser.add_argument('--momentum', type=float, default=0.9, help='Initial learnin
 parser.add_argument('--optimizer', default='adam', help='adam or momentum [default: adam]')
 parser.add_argument('--decay_step', type=int, default=200000, help='Decay step for lr decay [default: 200000]')
 parser.add_argument('--decay_rate', type=float, default=0.7, help='Decay rate for lr decay [default: 0.8]')
-parser.add_argument('--rotation_number', type=int, default=4, help='Decay rate for lr decay [default: 0.8]')
+parser.add_argument('--rotation_number', type=int, default=4, help='number of rotations for training')
+parser.add_argument('--debug_mode', type=bool, default=False, help='fast debug mode')
 
 FLAGS = parser.parse_args()
 
@@ -42,6 +43,8 @@ OPTIMIZER = FLAGS.optimizer
 DECAY_STEP = FLAGS.decay_step
 DECAY_RATE = FLAGS.decay_rate
 ROTATION_NUMBER = FLAGS.rotation_number
+PROFILE_DEBUG = FLAGS.debug_mode
+
 
 MODEL = importlib.import_module(FLAGS.model) # import network module
 MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model+'.py')
@@ -61,7 +64,7 @@ BN_DECAY_DECAY_STEP = float(DECAY_STEP)
 BN_DECAY_CLIP = 0.99
 
 HOSTNAME = socket.gethostname()
-PROFILE_DEBUG = False
+
 
 # ModelNet40 official train/test split
 TRAIN_PATH = 'data/modelnet40_ply_hdf5_2048/train_files.txt'.replace('/','\\') if PROFILE_DEBUG \
@@ -185,9 +188,9 @@ def train_one_epoch(sess, ops, train_writer):
     train_file_idxs = np.arange(0, len(TRAIN_FILES))
     np.random.shuffle(train_file_idxs)
     train_files_number = len(TRAIN_FILES)
+    if PROFILE_DEBUG : train_files_number = 1
     for fn in range(train_files_number):
-        fn=4
-        # if PROFILE_DEBUG : fn=4
+        fn=4 # TODO: if PROFILE_DEBUG : fn=4
         log_string('----' + str(fn) + '-----')
         current_data, current_label = provider.loadDataFile(TRAIN_FILES[train_file_idxs[fn]])
         current_data = current_data[:,0:NUM_POINT,:]
@@ -200,7 +203,7 @@ def train_one_epoch(sess, ops, train_writer):
         total_correct = 0
         total_seen = 0
         loss_sum = 0
-       
+        if PROFILE_DEBUG : num_batches=1
         for batch_idx in range(num_batches):
 
             start_idx = batch_idx * BATCH_SIZE
@@ -252,12 +255,12 @@ def eval_one_epoch(sess, ops, test_writer):
         for batch_idx in range(num_batches):
             start_idx = batch_idx * BATCH_SIZE
             end_idx = (batch_idx+1) * BATCH_SIZE
-            current_data = current_data[start_idx:end_idx, :, :]
-            current_data = rotationService.get_images_rotation_according_to_rotation_label(current_data)
+            batch_data = current_data[start_idx:end_idx, :, :]
+            batch_data = rotationService.get_images_rotation_according_to_rotation_label(batch_data)
             rotation_labels = list(range(ROTATION_NUMBER))
             rotation_labels = np.repeat(rotation_labels, end_idx - start_idx)
 
-            feed_dict = {ops['pointclouds_pl']: current_data,
+            feed_dict = {ops['pointclouds_pl']: batch_data,
                          ops['labels_pl']: rotation_labels,
                          ops['is_training_pl']: is_training}
             summary, step, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
