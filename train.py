@@ -240,7 +240,9 @@ def eval_one_epoch(sess, ops, test_writer):
         current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
         current_data = current_data[:,0:NUM_POINT,:]
         current_label = np.squeeze(current_label)
-        
+
+        current_data = rotationService.get_images_rotation_according_to_rotation_label(current_data)
+        current_label = list(range(ROTATION_NUMBER))
         file_size = current_data.shape[0]
         num_batches = file_size // BATCH_SIZE
         
