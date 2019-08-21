@@ -61,7 +61,7 @@ BN_DECAY_DECAY_STEP = float(DECAY_STEP)
 BN_DECAY_CLIP = 0.99
 
 HOSTNAME = socket.gethostname()
-PROFILE_DEBUG = True
+PROFILE_DEBUG = False
 
 # ModelNet40 official train/test split
 TRAIN_PATH = 'data/modelnet40_ply_hdf5_2048/train_files.txt'.replace('/','\\') if PROFILE_DEBUG \
