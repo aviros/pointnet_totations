@@ -64,14 +64,13 @@ HOSTNAME = socket.gethostname()
 PROFILE_DEBUG = True
 
 # ModelNet40 official train/test split
-TRAIN_FILES = provider.getDataFiles( \
-    # os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/train_files.txt'.replace('/','\\')))
-    os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/train_files.txt'))
+TRAIN_PATH = 'data/modelnet40_ply_hdf5_2048/train_files.txt'.replace('/','\\') if PROFILE_DEBUG \
+    else 'data/modelnet40_ply_hdf5_2048/train_files.txt'
+TEST_PATH = 'data/modelnet40_ply_hdf5_2048/test_files.txt'.replace('/','\\') if PROFILE_DEBUG \
+    else 'data/modelnet40_ply_hdf5_2048/test_files.txt'
 
-TEST_FILES = provider.getDataFiles(\
-    # os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/test_files.txt').replace('/','\\'))
-    os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/test_files.txt'))
-
+TRAIN_FILES = provider.getDataFiles(os.path.join(BASE_DIR, TRAIN_PATH))
+TEST_FILES = provider.getDataFiles(os.path.join(BASE_DIR, TEST_PATH))
 
 def log_string(out_str):
     LOG_FOUT.write(out_str+'\n')
@@ -188,6 +187,7 @@ def train_one_epoch(sess, ops, train_writer):
     train_files_number = len(TRAIN_FILES)
     for fn in range(train_files_number):
         fn=4
+        # if PROFILE_DEBUG : fn=4
         log_string('----' + str(fn) + '-----')
         current_data, current_label = provider.loadDataFile(TRAIN_FILES[train_file_idxs[fn]])
         current_data = current_data[:,0:NUM_POINT,:]
@@ -240,7 +240,7 @@ def eval_one_epoch(sess, ops, test_writer):
     total_correct_class = [0 for _ in range(NUM_CLASSES)]
     
     for fn in range(len(TEST_FILES)):
-        fn=4
+        if PROFILE_DEBUG : fn=1
         log_string('----' + str(fn) + '-----')
         current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
         current_data = current_data[:,0:NUM_POINT,:]
