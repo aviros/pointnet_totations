@@ -44,7 +44,7 @@ DECAY_STEP = FLAGS.decay_step
 DECAY_RATE = FLAGS.decay_rate
 ROTATION_NUMBER = FLAGS.rotation_number
 PROFILE_DEBUG = FLAGS.debug_mode
-
+print('PROFILE_DEBUG is: ' + str(PROFILE_DEBUG))
 
 MODEL = importlib.import_module(FLAGS.model) # import network module
 MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model+'.py')
@@ -231,6 +231,8 @@ def train_one_epoch(sess, ops, train_writer):
         
         log_string('mean loss: %f' % (loss_sum / float(num_batches)*ROTATION_NUMBER))
         log_string('accuracy: %f' % (total_correct / float(total_seen)))
+        log_string('accuracy total correct %f' % total_correct)
+        log_string('accuracy total seen: %f' % (float(total_seen)))
 
         
 def eval_one_epoch(sess, ops, test_writer):
