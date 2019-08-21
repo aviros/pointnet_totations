@@ -191,7 +191,7 @@ def train_one_epoch(sess, ops, train_writer):
     train_files_number = len(TRAIN_FILES)
     if PROFILE_DEBUG : train_files_number = 1
     for fn in range(train_files_number):
-        fn=4 # TODO: if PROFILE_DEBUG : fn=4
+        if PROFILE_DEBUG : fn = 4
         log_string('----' + str(fn) + '-----')
         current_data, current_label = provider.loadDataFile(TRAIN_FILES[train_file_idxs[fn]])
         current_data = current_data[:,0:NUM_POINT,:]
