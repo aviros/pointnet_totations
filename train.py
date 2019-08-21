@@ -226,10 +226,10 @@ def train_one_epoch(sess, ops, train_writer):
             pred_val = np.argmax(pred_val, 1)
             correct = np.sum(pred_val == rotation_labels)
             total_correct += correct
-            total_seen += BATCH_SIZE
+            total_seen += BATCH_SIZE*ROTATION_NUMBER
             loss_sum += loss_val
         
-        log_string('mean loss: %f' % (loss_sum / float(num_batches)))
+        log_string('mean loss: %f' % (loss_sum / float(num_batches)*ROTATION_NUMBER))
         log_string('accuracy: %f' % (total_correct / float(total_seen)))
 
         
@@ -268,8 +268,8 @@ def eval_one_epoch(sess, ops, test_writer):
             pred_val = np.argmax(pred_val, 1)
             correct = np.sum(pred_val == rotation_labels)
             total_correct += correct
-            total_seen += BATCH_SIZE
-            loss_sum += (loss_val*BATCH_SIZE)
+            total_seen += BATCH_SIZE*ROTATION_NUMBER
+            loss_sum += (loss_val*ROTATION_NUMBER)
             for i in range(start_idx, end_idx):
                 l = current_label[i]
                 total_seen_class[l] += 1
