@@ -1,5 +1,4 @@
 import numpy as np
-from mayavi import mlab
 import h5py
 
 
@@ -41,6 +40,7 @@ def rotate(X, theta, axis):
 
 
 if __name__ == '__main__':
+    from mayavi import mlab
     # s = mlab.surf(x, y, np.asarray(x*0.1, 'd'))
     f = h5py.File('C:\\Users\\lenovo\\Desktop\\modelnet40_ply_hdf5_2048\\ply_data_train0.h5')
     # f.keys() should be [u'data', u'label']

@@ -138,7 +138,7 @@ def train():
         log_string("Model restored.")
 
         bottleneck_layer = tf.get_default_graph().get_tensor_by_name(AFTER_EMBEDDING_LAYER)
-        # bottleneck_layer = tf.stop_gradient(bottleneck_layer)
+        bottleneck_layer = tf.stop_gradient(bottleneck_layer)
 
         with tf.variable_scope("trainable_section"):
             is_training = True
@@ -171,12 +171,9 @@ def train():
             optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM)
         elif OPTIMIZER == 'adam':
             optimizer = tf.train.AdamOptimizer(learning_rate)
-        train_op = optimizer.minimize(loss, global_step=batch)
+        # train_op = optimizer.minimize(loss, global_step=batch)
 
-        # train_op = optimizer.minimize(loss, global_step=batch, var_list=trainable_vars)
-
-        trainable_variable_initializers = [var.initializer for var in trainable_vars]
-        sess.run(trainable_variable_initializers)
+        train_op = optimizer.minimize(loss, global_step=batch, var_list=trainable_vars)
 
         # Add summary writers
         # merged = tf.merge_all_summaries()
@@ -186,11 +183,19 @@ def train():
         test_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'test'))
 
         # Init variables
-        init = tf.global_variables_initializer()
+        global_vars = tf.global_variables()
+        is_not_initialized = sess.run([tf.is_variable_initialized(var) for var in global_vars])
+        not_initialized_vars = [v for (v, f) in zip(global_vars, is_not_initialized) if not f]
+
+        print([str(i.name) for i in not_initialized_vars])  # only for testing
+        if len(not_initialized_vars):
+            sess.run(tf.variables_initializer(not_initialized_vars))
+
+        # init = tf.global_variables_initializer()
         # To fix the bug introduced in TF 0.12.1 as in
         # http://stackoverflow.com/questions/41543774/invalidargumenterror-for-tensor-bool-tensorflow-0-12-1
         # sess.run(init)
-        sess.run(init, {is_training_pl: True})
+        # sess.run(init, {is_training_pl: True})
 
         ops = {'pointclouds_pl': pointclouds_pl,
                'labels_pl': labels_pl,
