@@ -68,6 +68,7 @@ BN_DECAY_CLIP = 0.99
 
 HOSTNAME = socket.gethostname()
 BOTTLENECK_LAYER = 'dp1/cond/Merge:0'
+AFTER_EMBEDDING_LAYER = 'Reshape:0'
 
 # ModelNet40 official train/test split
 TRAIN_PATH = 'data/modelnet40_ply_hdf5_2048/train_files.txt'.replace('/', '\\') if PROFILE_DEBUG \
@@ -136,12 +137,22 @@ def train():
         saver.restore(sess, MODEL_PATH)
         log_string("Model restored.")
 
-
-        bottleneck_layer = tf.get_default_graph().get_tensor_by_name(BOTTLENECK_LAYER)
+        bottleneck_layer = tf.get_default_graph().get_tensor_by_name(AFTER_EMBEDDING_LAYER)
         bottleneck_layer = tf.stop_gradient(bottleneck_layer)
+
         with tf.variable_scope("trainable_section"):
-            pred = tf_util.fully_connected(bottleneck_layer, 256, activation_fn=None, scope='fc4')
-            pred = tf_util.fully_connected(pred, NUM_CLASSES, activation_fn=None, scope='fc5')
+            is_training = True
+            net = tf_util.fully_connected(bottleneck_layer, 512, bn=True, is_training=is_training_pl,
+                                          scope='fc1', bn_decay=bn_decay)
+            net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training_pl,
+                                          scope='fc2', bn_decay=bn_decay)
+            net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training_pl,
+                                  scope='dp1')
+
+            pred = tf_util.fully_connected(net, NUM_CLASSES, activation_fn=None, scope='fc3')
+
+            # pred = tf_util.fully_connected(bottleneck_layer, 256, activation_fn=None, scope='fc4')
+            # pred = tf_util.fully_connected(pred, NUM_CLASSES, activation_fn=None, scope='fc5')
 
         # get the variables declared in the scope "trainable_section"
         trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "trainable_section")
@@ -174,12 +185,12 @@ def train():
                                              sess.graph)
         test_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'test'))
 
-        # # Init variables
-        # init = tf.global_variables_initializer()
-        # # To fix the bug introduced in TF 0.12.1 as in
-        # # http://stackoverflow.com/questions/41543774/invalidargumenterror-for-tensor-bool-tensorflow-0-12-1
-        # # sess.run(init)
-        # sess.run(init, {is_training_pl: True})
+        # Init variables
+        init = tf.global_variables_initializer()
+        # To fix the bug introduced in TF 0.12.1 as in
+        # http://stackoverflow.com/questions/41543774/invalidargumenterror-for-tensor-bool-tensorflow-0-12-1
+        # sess.run(init)
+        sess.run(init, {is_training_pl: True})
 
         ops = {'pointclouds_pl': pointclouds_pl,
                'labels_pl': labels_pl,
