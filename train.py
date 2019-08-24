@@ -176,7 +176,7 @@ def train():
             
             # Save the variables to disk.
             if epoch % 10 == 0 or PROFILE_DEBUG:
-                save_path = saver.save(sess, os.path.join(LOG_DIR, "model.ckpt"))
+                save_path = saver.save(sess, os.path.join(LOG_DIR, "modelA.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
 
 
@@ -204,7 +204,7 @@ def train_one_epoch(sess, ops, train_writer):
         total_correct = 0
         total_seen = 0
         loss_sum = 0
-        if PROFILE_DEBUG : num_batches=1
+        if PROFILE_DEBUG : num_batches = 1
         for batch_idx in range(num_batches):
 
             start_idx = batch_idx * BATCH_SIZE
@@ -212,13 +212,15 @@ def train_one_epoch(sess, ops, train_writer):
             
             # Augment batched point clouds by rotation and jittering
             rotated_data = provider.rotate_point_cloud(current_data[start_idx:end_idx, :, :])
-            jittered_data = provider.jitter_point_cloud(rotated_data)
+            rotated_data = provider.jitter_point_cloud(rotated_data)
 
             rotation_labels = list(range(ROTATION_NUMBER))
             # rotationLabels = rotationService.get_rotations_labels(BATCH_SIZE)
-            jittered_data = rotationService.get_images_rotation_according_to_rotation_label(jittered_data)
+            rotated_data = rotationService.get_images_rotation_according_to_rotation_label(rotated_data)
             rotation_labels = np.repeat(rotation_labels, end_idx - start_idx)
-            feed_dict = {ops['pointclouds_pl']: jittered_data,
+            rotated_data, rotation_labels, _ = provider.shuffle_data(rotated_data, np.squeeze(rotation_labels))
+
+            feed_dict = {ops['pointclouds_pl']: rotated_data,
                          ops['labels_pl']: rotation_labels,
                          ops['is_training_pl']: is_training,}
             summary, step, _, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
