@@ -138,7 +138,7 @@ def train():
         log_string("Model restored.")
 
         bottleneck_layer = tf.get_default_graph().get_tensor_by_name(AFTER_EMBEDDING_LAYER)
-        bottleneck_layer = tf.stop_gradient(bottleneck_layer)
+        # bottleneck_layer = tf.stop_gradient(bottleneck_layer)
 
         with tf.variable_scope("trainable_section"):
             is_training = True
@@ -171,9 +171,9 @@ def train():
             optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM)
         elif OPTIMIZER == 'adam':
             optimizer = tf.train.AdamOptimizer(learning_rate)
-        # train_op = optimizer.minimize(loss, global_step=batch)
+        train_op = optimizer.minimize(loss, global_step=batch)
 
-        train_op = optimizer.minimize(loss, global_step=batch, var_list=trainable_vars)
+        # train_op = optimizer.minimize(loss, global_step=batch, var_list=trainable_vars)
 
         # Add summary writers
         # merged = tf.merge_all_summaries()
