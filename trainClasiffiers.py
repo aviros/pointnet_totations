@@ -138,7 +138,7 @@ def train():
         log_string("Model restored.")
 
         bottleneck_layer = tf.get_default_graph().get_tensor_by_name(AFTER_EMBEDDING_LAYER)
-        bottleneck_layer = tf.stop_gradient(bottleneck_layer)
+        # bottleneck_layer = tf.stop_gradient(bottleneck_layer)
 
         with tf.variable_scope("trainable_section"):
             is_training = True
@@ -171,9 +171,9 @@ def train():
             optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM)
         elif OPTIMIZER == 'adam':
             optimizer = tf.train.AdamOptimizer(learning_rate)
-        # train_op = optimizer.minimize(loss, global_step=batch)
+        train_op = optimizer.minimize(loss, global_step=batch)
 
-        train_op = optimizer.minimize(loss, global_step=batch, var_list=trainable_vars)
+        # train_op = optimizer.minimize(loss, global_step=batch, var_list=trainable_vars)
 
         trainable_variable_initializers = [var.initializer for var in trainable_vars]
         sess.run(trainable_variable_initializers)
@@ -261,7 +261,7 @@ def train_one_epoch(sess, ops, train_writer):
                 total_correct_class[l] += (pred_val[i - start_idx] == l)
 
 
-        log_string('mean loss: %f' % (loss_sum / float(num_batches) * ROTATION_NUMBER))
+        log_string('mean loss: %f' % (loss_sum / float(num_batches)))
         log_string('accuracy: %f' % (total_correct / float(total_seen)))
         log_string('accuracy total correct %f' % total_correct)
         log_string('accuracy total seen: %f' % (float(total_seen)))
