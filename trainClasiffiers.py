@@ -136,17 +136,12 @@ def train():
         saver.restore(sess, MODEL_PATH)
         log_string("Model restored.")
 
-        with tf.Session() as sess:
-            # writer = tf.summary.FileWriter("output", sess.graph)
-            print(sess.run(pred))
-            # writer.close()
-
 
         bottleneck_layer = tf.get_default_graph().get_tensor_by_name(BOTTLENECK_LAYER)
         bottleneck_layer = tf.stop_gradient(bottleneck_layer)
         with tf.variable_scope("trainable_section"):
             pred = tf_util.fully_connected(bottleneck_layer, 256, activation_fn=None, scope='fc4')
-            pred = tf_util.fully_connected(pred, NUM_CLASSES-1, activation_fn=None, scope='fc5')
+            pred = tf_util.fully_connected(pred, NUM_CLASSES, activation_fn=None, scope='fc5')
 
         # get the variables declared in the scope "trainable_section"
         trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "trainable_section")
@@ -165,9 +160,9 @@ def train():
             optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM)
         elif OPTIMIZER == 'adam':
             optimizer = tf.train.AdamOptimizer(learning_rate)
-        train_op = optimizer.minimize(loss, global_step=batch)
+        # train_op = optimizer.minimize(loss, global_step=batch)
 
-        optimizer.minimize(loss, var_list=trainable_vars)
+        train_op = optimizer.minimize(loss, global_step=batch, var_list=trainable_vars)
 
         trainable_variable_initializers = [var.initializer for var in trainable_vars]
         sess.run(trainable_variable_initializers)
