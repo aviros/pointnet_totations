@@ -8,6 +8,7 @@ import importlib
 import os
 import sys
 import rotationService
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, 'models'))
@@ -18,7 +19,8 @@ import tf_util
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
 # parser.add_argument('--model', default='pointnet_cls', help='Model name: pointnet_cls or pointnet_cls_basic [default: pointnet_cls]')
-parser.add_argument('--model', default='pointnet_cls_basic', help='Model name: pointnet_cls or pointnet_cls_basic [default: pointnet_cls]')
+parser.add_argument('--model', default='pointnet_cls_basic',
+                    help='Model name: pointnet_cls or pointnet_cls_basic [default: pointnet_cls]')
 parser.add_argument('--log_dir', default='log', help='Log dir [default: log]')
 parser.add_argument('--num_point', type=int, default=1024, help='Point Number [256/512/1024/2048] [default: 1024]')
 parser.add_argument('--max_epoch', type=int, default=250, help='Epoch to run [default: 250]')
@@ -30,9 +32,9 @@ parser.add_argument('--decay_step', type=int, default=200000, help='Decay step f
 parser.add_argument('--decay_rate', type=float, default=0.7, help='Decay rate for lr decay [default: 0.8]')
 parser.add_argument('--rotation_number', type=int, default=4, help='number of rotations for training')
 parser.add_argument('--debug_mode', type=bool, default=False, help='fast debug mode')
+parser.add_argument('--model_path', default='log/model.ckpt', help='model checkpoint file path [default: log/model.ckpt]')
 
 FLAGS = parser.parse_args()
-
 
 BATCH_SIZE = FLAGS.batch_size
 NUM_POINT = FLAGS.num_point
@@ -44,17 +46,18 @@ OPTIMIZER = FLAGS.optimizer
 DECAY_STEP = FLAGS.decay_step
 DECAY_RATE = FLAGS.decay_rate
 ROTATION_NUMBER = FLAGS.rotation_number
+MODEL_PATH = FLAGS.model_path
 PROFILE_DEBUG = FLAGS.debug_mode
 print('PROFILE_DEBUG is: ' + str(PROFILE_DEBUG))
 
-MODEL = importlib.import_module(FLAGS.model) # import network module
-MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model+'.py')
+MODEL = importlib.import_module(FLAGS.model)  # import network module
+MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model + '.py')
 LOG_DIR = FLAGS.log_dir
 if not os.path.exists(LOG_DIR): os.mkdir(LOG_DIR)
-os.system('cp %s %s' % (MODEL_FILE, LOG_DIR)) # bkp of model def
-os.system('cp train.py %s' % (LOG_DIR)) # bkp of train procedure
+os.system('cp %s %s' % (MODEL_FILE, LOG_DIR))  # bkp of model def
+os.system('cp train.py %s' % (LOG_DIR))  # bkp of train procedure
 LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
-LOG_FOUT.write(str(FLAGS)+'\n')
+LOG_FOUT.write(str(FLAGS) + '\n')
 
 MAX_NUM_POINT = 2048
 NUM_CLASSES = 40
@@ -65,78 +68,65 @@ BN_DECAY_DECAY_STEP = float(DECAY_STEP)
 BN_DECAY_CLIP = 0.99
 
 HOSTNAME = socket.gethostname()
-
+BOTTLENECK_LAYER = 'dp1/cond/Merge:0'
 
 # ModelNet40 official train/test split
-TRAIN_PATH = 'data/modelnet40_ply_hdf5_2048/train_files.txt'.replace('/','\\') if PROFILE_DEBUG \
+TRAIN_PATH = 'data/modelnet40_ply_hdf5_2048/train_files.txt'.replace('/', '\\') if PROFILE_DEBUG \
     else 'data/modelnet40_ply_hdf5_2048/train_files.txt'
-TEST_PATH = 'data/modelnet40_ply_hdf5_2048/test_files.txt'.replace('/','\\') if PROFILE_DEBUG \
+TEST_PATH = 'data/modelnet40_ply_hdf5_2048/test_files.txt'.replace('/', '\\') if PROFILE_DEBUG \
     else 'data/modelnet40_ply_hdf5_2048/test_files.txt'
 
 TRAIN_FILES = provider.getDataFiles(os.path.join(BASE_DIR, TRAIN_PATH))
 TEST_FILES = provider.getDataFiles(os.path.join(BASE_DIR, TEST_PATH))
 
+
 def log_string(out_str):
-    LOG_FOUT.write(out_str+'\n')
+    LOG_FOUT.write(out_str + '\n')
     LOG_FOUT.flush()
     print(out_str)
 
 
 def get_learning_rate(batch):
     learning_rate = tf.train.exponential_decay(
-                        BASE_LEARNING_RATE,  # Base learning rate.
-                        batch * BATCH_SIZE,  # Current index into the dataset.
-                        DECAY_STEP,          # Decay step.
-                        DECAY_RATE,          # Decay rate.
-                        staircase=True)
-    learning_rate = tf.maximum(learning_rate, 0.00001) # CLIP THE LEARNING RATE!
-    return learning_rate        
+        BASE_LEARNING_RATE,  # Base learning rate.
+        batch * BATCH_SIZE,  # Current index into the dataset.
+        DECAY_STEP,  # Decay step.
+        DECAY_RATE,  # Decay rate.
+        staircase=True)
+    learning_rate = tf.maximum(learning_rate, 0.00001)  # CLIP THE LEARNING RATE!
+    return learning_rate
 
 
 def get_bn_decay(batch):
     bn_momentum = tf.train.exponential_decay(
-                      BN_INIT_DECAY,
-                      batch*BATCH_SIZE,
-                      BN_DECAY_DECAY_STEP,
-                      BN_DECAY_DECAY_RATE,
-                      staircase=True)
+        BN_INIT_DECAY,
+        batch * BATCH_SIZE,
+        BN_DECAY_DECAY_STEP,
+        BN_DECAY_DECAY_RATE,
+        staircase=True)
     bn_decay = tf.minimum(BN_DECAY_CLIP, 1 - bn_momentum)
     return bn_decay
 
+
 def train():
     with tf.Graph().as_default():
-        with tf.device('/gpu:'+str(GPU_INDEX)):
-            pointclouds_pl, labels_pl = MODEL.placeholder_inputs(BATCH_SIZE, NUM_POINT,ROTATION_NUMBER)
+        with tf.device('/gpu:' + str(GPU_INDEX)):
+            pointclouds_pl, labels_pl = MODEL.placeholder_inputs(BATCH_SIZE, NUM_POINT)
             is_training_pl = tf.placeholder(tf.bool, shape=())
             print(is_training_pl)
-            
-            # Note the global_step=batch parameter to minimize. 
+
+            # Note the global_step=batch parameter to minimize.
             # That tells the optimizer to helpfully increment the 'batch' parameter for you every time it trains.
             batch = tf.Variable(0)
             bn_decay = get_bn_decay(batch)
             tf.summary.scalar('bn_decay', bn_decay)
 
-            # Get model and loss 
-            pred, end_points = MODEL.get_model(pointclouds_pl, is_training_pl, ROTATION_NUMBER, bn_decay=bn_decay,)
-            loss = MODEL.get_loss(pred, labels_pl, end_points)
-            tf.summary.scalar('loss', loss)
+            # Get model and loss
+            pred, end_points = MODEL.get_model(pointclouds_pl, is_training_pl, ROTATION_NUMBER, bn_decay=bn_decay, )
 
-            correct = tf.equal(tf.argmax(pred, 1), tf.to_int64(labels_pl))
-            accuracy = tf.reduce_sum(tf.cast(correct, tf.float32)) / float(BATCH_SIZE)
-            tf.summary.scalar('accuracy', accuracy)
-
-            # Get training operator
-            learning_rate = get_learning_rate(batch)
-            tf.summary.scalar('learning_rate', learning_rate)
-            if OPTIMIZER == 'momentum':
-                optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM)
-            elif OPTIMIZER == 'adam':
-                optimizer = tf.train.AdamOptimizer(learning_rate)
-            train_op = optimizer.minimize(loss, global_step=batch)
-            
             # Add ops to save and restore all the variables.
             saver = tf.train.Saver()
-            
+
         # Create a session
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
@@ -144,19 +134,51 @@ def train():
         config.log_device_placement = False
         sess = tf.Session(config=config)
 
+        saver.restore(sess, MODEL_PATH)
+        log_string("Model restored.")
+
+        bottleneck_layer = tf.get_default_graph().get_tensor_by_name(BOTTLENECK_LAYER)
+        bottleneck_layer = tf.stop_gradient(bottleneck_layer)
+        with tf.variable_scope("trainable_section"):
+            pred = tf_util.fully_connected(bottleneck_layer, NUM_CLASSES, activation_fn=None, scope='fc3')
+
+        # get the variables declared in the scope "trainable_section"
+        trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "trainable_section")
+
+        loss = MODEL.get_loss(pred, labels_pl, end_points)
+        tf.summary.scalar('loss', loss)
+
+        correct = tf.equal(tf.argmax(pred, 1), tf.to_int64(labels_pl))
+        accuracy = tf.reduce_sum(tf.cast(correct, tf.float32)) / float(BATCH_SIZE)
+        tf.summary.scalar('accuracy', accuracy)
+
+        # Get training operator
+        learning_rate = get_learning_rate(batch)
+        tf.summary.scalar('learning_rate', learning_rate)
+        if OPTIMIZER == 'momentum':
+            optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=MOMENTUM)
+        elif OPTIMIZER == 'adam':
+            optimizer = tf.train.AdamOptimizer(learning_rate)
+        train_op = optimizer.minimize(loss, global_step=batch)
+
+        optimizer.minimize(loss, var_list=trainable_vars)
+
+        trainable_variable_initializers = [var.initializer for var in trainable_vars]
+        sess.run(trainable_variable_initializers)
+
         # Add summary writers
-        #merged = tf.merge_all_summaries()
+        # merged = tf.merge_all_summaries()
         merged = tf.summary.merge_all()
         train_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'train'),
-                                  sess.graph)
+                                             sess.graph)
         test_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'test'))
 
-        # Init variables
-        init = tf.global_variables_initializer()
-        # To fix the bug introduced in TF 0.12.1 as in
-        # http://stackoverflow.com/questions/41543774/invalidargumenterror-for-tensor-bool-tensorflow-0-12-1
-        #sess.run(init)
-        sess.run(init, {is_training_pl: True})
+        # # Init variables
+        # init = tf.global_variables_initializer()
+        # # To fix the bug introduced in TF 0.12.1 as in
+        # # http://stackoverflow.com/questions/41543774/invalidargumenterror-for-tensor-bool-tensorflow-0-12-1
+        # # sess.run(init)
+        # sess.run(init, {is_training_pl: True})
 
         ops = {'pointclouds_pl': pointclouds_pl,
                'labels_pl': labels_pl,
@@ -170,72 +192,69 @@ def train():
         for epoch in range(MAX_EPOCH):
             log_string('**** EPOCH %03d ****' % (epoch))
             sys.stdout.flush()
-             
+
             train_one_epoch(sess, ops, train_writer)
             eval_one_epoch(sess, ops, test_writer)
-            
+
             # Save the variables to disk.
             if epoch % 10 == 0 or PROFILE_DEBUG:
-                save_path = saver.save(sess, os.path.join(LOG_DIR, "model.ckpt"))
+                save_path = saver.save(sess, os.path.join(LOG_DIR, "classifyModel.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
-
 
 
 def train_one_epoch(sess, ops, train_writer):
     """ ops: dict mapping from string to tf ops """
     is_training = True
-    
+
     # Shuffle train files
     train_file_idxs = np.arange(0, len(TRAIN_FILES))
     np.random.shuffle(train_file_idxs)
     train_files_number = len(TRAIN_FILES)
-    if PROFILE_DEBUG : train_files_number = 1
+    total_seen_class = [0 for _ in range(NUM_CLASSES)]
+    total_correct_class = [0 for _ in range(NUM_CLASSES)]
+
+    if PROFILE_DEBUG: train_files_number = 1
     for fn in range(train_files_number):
-        if PROFILE_DEBUG : fn = 4
+        if PROFILE_DEBUG: fn = 4
         log_string('----' + str(fn) + '-----')
         current_data, current_label = provider.loadDataFile(TRAIN_FILES[train_file_idxs[fn]])
-        current_data = current_data[:,0:NUM_POINT,:]
-        current_data, current_label, _ = provider.shuffle_data(current_data, np.squeeze(current_label))            
+        current_data = current_data[:, 0:NUM_POINT, :]
+        current_data, current_label, _ = provider.shuffle_data(current_data, np.squeeze(current_label))
         current_label = np.squeeze(current_label)
-        
+
         file_size = current_data.shape[0]
         num_batches = file_size // BATCH_SIZE
-        
+
         total_correct = 0
         total_seen = 0
         loss_sum = 0
-        if PROFILE_DEBUG : num_batches=1
+        if PROFILE_DEBUG: num_batches = 1
         for batch_idx in range(num_batches):
-
             start_idx = batch_idx * BATCH_SIZE
-            end_idx = (batch_idx+1) * BATCH_SIZE
-            
-            # Augment batched point clouds by rotation and jittering
-            rotated_data = provider.rotate_point_cloud(current_data[start_idx:end_idx, :, :])
-            jittered_data = provider.jitter_point_cloud(rotated_data)
+            end_idx = (batch_idx + 1) * BATCH_SIZE
 
-            rotation_labels = list(range(ROTATION_NUMBER))
-            # rotationLabels = rotationService.get_rotations_labels(BATCH_SIZE)
-            jittered_data = rotationService.get_images_rotation_according_to_rotation_label(jittered_data)
-            rotation_labels = np.repeat(rotation_labels, end_idx - start_idx)
-            feed_dict = {ops['pointclouds_pl']: jittered_data,
-                         ops['labels_pl']: rotation_labels,
-                         ops['is_training_pl']: is_training,}
-            summary, step, _, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
-                ops['train_op'], ops['loss'], ops['pred']], feed_dict=feed_dict)
-            train_writer.add_summary(summary, step)
+            feed_dict = {ops['pointclouds_pl']: current_data[start_idx:end_idx, :, :],
+                         ops['labels_pl']: current_label[start_idx:end_idx],
+                         ops['is_training_pl']: is_training}
+            summary, step, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
+                                                          ops['loss'], ops['pred']], feed_dict=feed_dict)
             pred_val = np.argmax(pred_val, 1)
-            correct = np.sum(pred_val == rotation_labels)
+            correct = np.sum(pred_val == current_label[start_idx:end_idx])
             total_correct += correct
-            total_seen += BATCH_SIZE*ROTATION_NUMBER
-            loss_sum += loss_val
+            total_seen += BATCH_SIZE
+            loss_sum += (loss_val * BATCH_SIZE)
+            for i in range(start_idx, end_idx):
+                l = current_label[i]
+                total_seen_class[l] += 1
+                total_correct_class[l] += (pred_val[i - start_idx] == l)
 
-        log_string('mean loss: %f' % (loss_sum / float(num_batches)*ROTATION_NUMBER))
+
+        log_string('mean loss: %f' % (loss_sum / float(num_batches) * ROTATION_NUMBER))
         log_string('accuracy: %f' % (total_correct / float(total_seen)))
         log_string('accuracy total correct %f' % total_correct)
         log_string('accuracy total seen: %f' % (float(total_seen)))
 
-        
+
 def eval_one_epoch(sess, ops, test_writer):
     """ ops: dict mapping from string to tf ops """
     is_training = False
@@ -244,44 +263,41 @@ def eval_one_epoch(sess, ops, test_writer):
     loss_sum = 0
     total_seen_class = [0 for _ in range(NUM_CLASSES)]
     total_correct_class = [0 for _ in range(NUM_CLASSES)]
-    
+
     for fn in range(len(TEST_FILES)):
-        if PROFILE_DEBUG : fn=1
         log_string('----' + str(fn) + '-----')
         current_data, current_label = provider.loadDataFile(TEST_FILES[fn])
-        current_data = current_data[:,0:NUM_POINT,:]
+        current_data = current_data[:, 0:NUM_POINT, :]
         current_label = np.squeeze(current_label)
 
         file_size = current_data.shape[0]
         num_batches = file_size // BATCH_SIZE
-        
+
+        if PROFILE_DEBUG: num_batches = 1
         for batch_idx in range(num_batches):
             start_idx = batch_idx * BATCH_SIZE
-            end_idx = (batch_idx+1) * BATCH_SIZE
-            batch_data = current_data[start_idx:end_idx, :, :]
-            batch_data = rotationService.get_images_rotation_according_to_rotation_label(batch_data)
-            rotation_labels = list(range(ROTATION_NUMBER))
-            rotation_labels = np.repeat(rotation_labels, end_idx - start_idx)
+            end_idx = (batch_idx + 1) * BATCH_SIZE
 
-            feed_dict = {ops['pointclouds_pl']: batch_data,
-                         ops['labels_pl']: rotation_labels,
+            feed_dict = {ops['pointclouds_pl']: current_data[start_idx:end_idx, :, :],
+                         ops['labels_pl']: current_label[start_idx:end_idx],
                          ops['is_training_pl']: is_training}
             summary, step, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
-                ops['loss'], ops['pred']], feed_dict=feed_dict)
+                                                          ops['loss'], ops['pred']], feed_dict=feed_dict)
             pred_val = np.argmax(pred_val, 1)
-            correct = np.sum(pred_val == rotation_labels)
+            correct = np.sum(pred_val == current_label[start_idx:end_idx])
             total_correct += correct
-            total_seen += BATCH_SIZE*ROTATION_NUMBER
-            loss_sum += (loss_val*ROTATION_NUMBER)
+            total_seen += BATCH_SIZE
+            loss_sum += (loss_val * BATCH_SIZE)
             for i in range(start_idx, end_idx):
                 l = current_label[i]
                 total_seen_class[l] += 1
-                total_correct_class[l] += (pred_val[i-start_idx] == l)
-            
+                total_correct_class[l] += (pred_val[i - start_idx] == l)
+
     log_string('eval mean loss: %f' % (loss_sum / float(total_seen)))
-    log_string('eval accuracy: %f'% (total_correct / float(total_seen)))
-    log_string('eval avg class acc: %f' % (np.mean(np.array(total_correct_class)/np.array(total_seen_class,dtype=np.float))))
-         
+    log_string('eval accuracy: %f' % (total_correct / float(total_seen)))
+    log_string('eval avg class acc: %f' % (
+        np.mean(np.array(total_correct_class) / np.array(total_seen_class, dtype=np.float))))
+
 
 
 if __name__ == "__main__":

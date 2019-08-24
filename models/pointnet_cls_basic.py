@@ -55,9 +55,11 @@ def get_model(point_cloud, is_training, rotation_number=1, bn_decay=None):
                                   scope='fc2', bn_decay=bn_decay)
     net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training,
                           scope='dp1')
-    net = tf_util.fully_connected(net, rotation_number, activation_fn=None, scope='fc3')
+    # tf.add_to_collection('TRANSFERABLE_VARIABLES', net)
+    # saver = tf.train.Saver((tf.get_collection('TRANSFERABLE_VARIABLES')))
+    retnet = tf_util.fully_connected(net, rotation_number, activation_fn=None, scope='fc3')
 
-    return net, end_points
+    return retnet, end_points
 
 
 def get_loss(pred, label, end_points):
