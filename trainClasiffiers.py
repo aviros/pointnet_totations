@@ -19,8 +19,7 @@ import tf_util
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
 # parser.add_argument('--model', default='pointnet_cls', help='Model name: pointnet_cls or pointnet_cls_basic [default: pointnet_cls]')
-parser.add_argument('--model', default='pointnet_cls_basic',
-                    help='Model name: pointnet_cls or pointnet_cls_basic [default: pointnet_cls]')
+parser.add_argument('--model', default='pointnet_cls_basic', help='Model name: pointnet_cls or pointnet_cls_basic [default: pointnet_cls]')
 parser.add_argument('--log_dir', default='log', help='Log dir [default: log]')
 parser.add_argument('--num_point', type=int, default=1024, help='Point Number [256/512/1024/2048] [default: 1024]')
 parser.add_argument('--max_epoch', type=int, default=250, help='Epoch to run [default: 250]')
@@ -137,10 +136,17 @@ def train():
         saver.restore(sess, MODEL_PATH)
         log_string("Model restored.")
 
+        with tf.Session() as sess:
+            # writer = tf.summary.FileWriter("output", sess.graph)
+            print(sess.run(pred))
+            # writer.close()
+
+
         bottleneck_layer = tf.get_default_graph().get_tensor_by_name(BOTTLENECK_LAYER)
         bottleneck_layer = tf.stop_gradient(bottleneck_layer)
         with tf.variable_scope("trainable_section"):
-            pred = tf_util.fully_connected(bottleneck_layer, NUM_CLASSES, activation_fn=None, scope='fc3')
+            pred = tf_util.fully_connected(bottleneck_layer, 256, activation_fn=None, scope='fc4')
+            pred = tf_util.fully_connected(pred, NUM_CLASSES-1, activation_fn=None, scope='fc5')
 
         # get the variables declared in the scope "trainable_section"
         trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "trainable_section")
