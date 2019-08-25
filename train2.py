@@ -66,6 +66,8 @@ TRAIN_PATH = 'data/modelnet40_ply_hdf5_2048/train_files.txt'.replace('/','\\') i
 TEST_PATH = 'data/modelnet40_ply_hdf5_2048/test_files.txt'.replace('/','\\') if PROFILE_DEBUG \
     else 'data/modelnet40_ply_hdf5_2048/test_files.txt'
 
+TRAIN_FILES = provider.getDataFiles(os.path.join(BASE_DIR, TRAIN_PATH))
+TEST_FILES = provider.getDataFiles(os.path.join(BASE_DIR, TEST_PATH))
 
 def log_string(out_str):
     LOG_FOUT.write(out_str + '\n')
