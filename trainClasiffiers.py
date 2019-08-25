@@ -160,7 +160,7 @@ def train():
         loss = MODEL.get_loss(pred, labels_pl, end_points)
         tf.summary.scalar('loss', loss)
 
-        correct = tf.equal(tf.argmax(pred, 1), tf.to_int64(labels_pl))
+        correct = tf.equal(tf.argmax(pred, 1), tf.cast(labels_pl, tf.int64))
         accuracy = tf.reduce_sum(tf.cast(correct, tf.float32)) / float(BATCH_SIZE)
         tf.summary.scalar('accuracy', accuracy)
 
