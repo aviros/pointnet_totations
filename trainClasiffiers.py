@@ -138,7 +138,8 @@ def train():
         log_string("Model restored.")
 
         bottleneck_layer = tf.get_default_graph().get_tensor_by_name(BOTTLENECK_LAYER)
-        # bottleneck_layer = tf.stop_gradient(bottleneck_layer)
+        bottleneck_layer = tf.stop_gradient(bottleneck_layer)
+        pred = tf.stop_gradient(pred)
 
         is_training = True
         net = tf_util.fully_connected(bottleneck_layer, 512, bn=True, is_training=is_training_pl,
