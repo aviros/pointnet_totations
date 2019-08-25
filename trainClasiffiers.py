@@ -137,16 +137,16 @@ def train():
         saver.restore(sess, MODEL_PATH)
         log_string("Model restored.")
 
-        bottleneck_layer = tf.get_default_graph().get_tensor_by_name(BOTTLENECK_LAYER)
-        bottleneck_layer = tf.stop_gradient(bottleneck_layer)
+        restore_layer = tf.get_default_graph().get_tensor_by_name(AFTER_EMBEDDING_LAYER)
+        restore_layer = tf.stop_gradient(restore_layer)
         pred = tf.stop_gradient(pred)
 
-        net = tf_util.fully_connected(bottleneck_layer, 512, bn=True, is_training=is_training_pl,
+        net = tf_util.fully_connected(restore_layer, 512, bn=True, is_training=is_training_pl,
                                       scope='retrainFC1', bn_decay=bn_decay)
-        # net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training_pl,
-        #                               scope='retrainFC2', bn_decay=bn_decay)
-        # net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training_pl,
-        #                       scope='dp1')
+        net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training_pl,
+                                      scope='retrainFC2', bn_decay=bn_decay)
+        net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training_pl,
+                              scope='dp1')
 
         pred = tf_util.fully_connected(net, NUM_CLASSES, activation_fn=None, scope='retrainFC3')
 
