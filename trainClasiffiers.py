@@ -31,7 +31,7 @@ parser.add_argument('--decay_step', type=int, default=200000, help='Decay step f
 parser.add_argument('--decay_rate', type=float, default=0.7, help='Decay rate for lr decay [default: 0.8]')
 parser.add_argument('--rotation_number', type=int, default=4, help='number of rotations for training')
 parser.add_argument('--debug_mode', type=bool, default=False, help='fast debug mode')
-parser.add_argument('--model_path', default='log/model.ckpt', help='model checkpoint file path [default: log/model.ckpt]')
+parser.add_argument('--model_path', default='log/modelA.ckpt', help='model checkpoint file path [default: log/model.ckpt]')
 
 FLAGS = parser.parse_args()
 
