@@ -140,23 +140,23 @@ def train():
         bottleneck_layer = tf.get_default_graph().get_tensor_by_name(BOTTLENECK_LAYER)
         # bottleneck_layer = tf.stop_gradient(bottleneck_layer)
 
-        with tf.variable_scope("trainable_section"):
-            is_training = True
-            net = tf_util.fully_connected(bottleneck_layer, 512, bn=True, is_training=is_training_pl,
-                                          scope='fc1', bn_decay=bn_decay)
-            # net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training_pl,
-            #                               scope='fc2', bn_decay=bn_decay)
-            # net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training_pl,
-            #                       scope='dp1')
+        is_training = True
+        net = tf_util.fully_connected(bottleneck_layer, 512, bn=True, is_training=is_training_pl,
+                                      scope='retrainFC', bn_decay=bn_decay)
+        # net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training_pl,
+        #                               scope='fc2', bn_decay=bn_decay)
+        # net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training_pl,
+        #                       scope='dp1')
 
-            pred = tf_util.fully_connected(net, NUM_CLASSES, activation_fn=None, scope='fc3')
+        pred = tf_util.fully_connected(net, NUM_CLASSES, activation_fn=None, scope='fcEnd')
 
-            # pred = tf_util.fully_connected(bottleneck_layer, 256, activation_fn=None, scope='fc4')
-            # pred = tf_util.fully_connected(pred, NUM_CLASSES, activation_fn=None, scope='fc5')
+        # pred = tf_util.fully_connected(bottleneck_layer, 256, activation_fn=None, scope='fc4')
+        # pred = tf_util.fully_connected(pred, NUM_CLASSES, activation_fn=None, scope='fc5')
 
         # get the variables declared in the scope "trainable_section"
         trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "trainable_section")
 
+        tf.summary.FileWriter(os.path.join(LOG_DIR, 'train'), sess.graph)
         loss = MODEL.get_loss(pred, labels_pl, end_points)
         tf.summary.scalar('loss', loss)
 
@@ -255,6 +255,7 @@ def train_one_epoch(sess, ops, train_writer):
                          ops['is_training_pl']: is_training}
             summary, step, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
                                                           ops['loss'], ops['pred']], feed_dict=feed_dict)
+            train_writer.add_summary(summary, step)
             pred_val = np.argmax(pred_val, 1)
             correct = np.sum(pred_val == current_label[start_idx:end_idx])
             total_correct += correct
@@ -264,7 +265,6 @@ def train_one_epoch(sess, ops, train_writer):
                 l = current_label[i]
                 total_seen_class[l] += 1
                 total_correct_class[l] += (pred_val[i - start_idx] == l)
-
 
         log_string('mean loss: %f' % (loss_sum / float(num_batches)))
         log_string('accuracy: %f' % (total_correct / float(total_seen)))
