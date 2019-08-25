@@ -139,9 +139,8 @@ def train():
 
         bottleneck_layer = tf.get_default_graph().get_tensor_by_name(BOTTLENECK_LAYER)
         bottleneck_layer = tf.stop_gradient(bottleneck_layer)
-        # pred = tf.stop_gradient(pred)
+        pred = tf.stop_gradient(pred)
 
-        is_training = True
         net = tf_util.fully_connected(bottleneck_layer, 512, bn=True, is_training=is_training_pl,
                                       scope='retrainFC1', bn_decay=bn_decay)
         net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training_pl,
@@ -216,7 +215,7 @@ def train():
 
             # Save the variables to disk.
             if epoch % 10 == 0 or PROFILE_DEBUG:
-                save_path = saver.save(sess, os.path.join(LOG_DIR, "classifyModel_full_gradient_3_fc_4rot.ckpt"))
+                save_path = saver.save(sess, os.path.join(LOG_DIR, "classifyModel_stop_gradient_3_fc_4rot.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
 
 
