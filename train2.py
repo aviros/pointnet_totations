@@ -48,7 +48,7 @@ os.system('cp %s %s' % (MODEL_FILE, LOG_DIR))  # bkp of model def
 os.system('cp train.py %s' % (LOG_DIR))  # bkp of train procedure
 LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
 LOG_FOUT.write(str(FLAGS) + '\n')
-
+PROFILE_DEBUG = False
 MAX_NUM_POINT = 2048
 NUM_CLASSES = 40
 
@@ -60,10 +60,11 @@ BN_DECAY_CLIP = 0.99
 HOSTNAME = socket.gethostname()
 
 # ModelNet40 official train/test split
-TRAIN_FILES = provider.getDataFiles( \
-    os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/train_files.txt'.replace('/', '\\')))
-TEST_FILES = provider.getDataFiles( \
-    os.path.join(BASE_DIR, 'data/modelnet40_ply_hdf5_2048/test_files.txt'))
+# ModelNet40 official train/test split
+TRAIN_PATH = 'data/modelnet40_ply_hdf5_2048/train_files.txt'.replace('/','\\') if PROFILE_DEBUG \
+    else 'data/modelnet40_ply_hdf5_2048/train_files.txt'
+TEST_PATH = 'data/modelnet40_ply_hdf5_2048/test_files.txt'.replace('/','\\') if PROFILE_DEBUG \
+    else 'data/modelnet40_ply_hdf5_2048/test_files.txt'
 
 
 def log_string(out_str):
