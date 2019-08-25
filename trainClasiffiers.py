@@ -54,8 +54,8 @@ MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model + '.py')
 LOG_DIR = FLAGS.log_dir
 if not os.path.exists(LOG_DIR): os.mkdir(LOG_DIR)
 os.system('cp %s %s' % (MODEL_FILE, LOG_DIR))  # bkp of model def
-os.system('cp train.py %s' % (LOG_DIR))  # bkp of train procedure
-LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
+os.system('cp trainClassifiers.py %s' % (LOG_DIR))  # bkp of train procedure
+LOG_FOUT = open(os.path.join(LOG_DIR, 'log_classifier_train.txt'), 'w')
 LOG_FOUT.write(str(FLAGS) + '\n')
 
 MAX_NUM_POINT = 2048
@@ -143,13 +143,13 @@ def train():
 
         is_training = True
         net = tf_util.fully_connected(bottleneck_layer, 512, bn=True, is_training=is_training_pl,
-                                      scope='retrainFC', bn_decay=bn_decay)
-        # net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training_pl,
-        #                               scope='fc2', bn_decay=bn_decay)
-        # net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training_pl,
-        #                       scope='dp1')
+                                      scope='retrainFC1', bn_decay=bn_decay)
+        net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training_pl,
+                                      scope='retrainFC2', bn_decay=bn_decay)
+        net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training_pl,
+                              scope='dp1')
 
-        pred = tf_util.fully_connected(net, NUM_CLASSES, activation_fn=None, scope='fcEnd')
+        pred = tf_util.fully_connected(net, NUM_CLASSES, activation_fn=None, scope='retrainFC3')
 
         # pred = tf_util.fully_connected(bottleneck_layer, 256, activation_fn=None, scope='fc4')
         # pred = tf_util.fully_connected(pred, NUM_CLASSES, activation_fn=None, scope='fc5')
@@ -216,7 +216,7 @@ def train():
 
             # Save the variables to disk.
             if epoch % 10 == 0 or PROFILE_DEBUG:
-                save_path = saver.save(sess, os.path.join(LOG_DIR, "classifyModel.ckpt"))
+                save_path = saver.save(sess, os.path.join(LOG_DIR, "classifyModel_full_gradient_3_fc_4rot.ckpt"))
                 log_string("Model saved in file: %s" % save_path)
 
 
