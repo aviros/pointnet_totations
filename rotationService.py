@@ -7,8 +7,14 @@ def get_rotations_labels(batchSize):
     # return np.random.randint(0,8,batchSize)
 
 
-def get_images_rotation_according_to_rotation_label(images):
-    binary_labels = [format(x, '03b') for x in [0,3,5,6]]
+def get_images_rotation_according_to_rotation_label(images, rotations_list):
+    """rotate images according to rotation list.
+    :arg:
+    rotationsList: expected list with length of 1-8. each number converts to binary and
+    represent a 90 degrees rotation through the axis. For example:
+    1-> is 001 (X not rotated, Y not rotates, Z rotated)
+    5-> is 101 (X rotated, Y not rotated, Z rotated)"""
+    binary_labels = [format(x, '03b') for x in rotations_list]
     return np.concatenate([rotate(images, np.pi/2, x) for x in binary_labels])
 
 

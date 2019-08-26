@@ -5,6 +5,7 @@ import numpy as np
 import tensorflow as tf
 import socket
 import importlib
+import ast
 import os
 import sys
 import rotationService
@@ -14,6 +15,11 @@ sys.path.append(os.path.join(BASE_DIR, 'models'))
 sys.path.append(os.path.join(BASE_DIR, 'utils'))
 import provider
 import tf_util
+
+ROTATION_LIST_HELP = 'rotations list for training. expected list with values in between 0-7, length of 1-8. ' \
+                     'Each number converts to binary and represent a 90 degrees rotation through the axis. For example: \
+                    1-> is 001 (X not rotated, Y not rotates, Z rotated). \
+                    5-> is 101 (X rotated, Y not rotated, Z rotated)'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='GPU to use [default: GPU 0]')
@@ -28,7 +34,8 @@ parser.add_argument('--momentum', type=float, default=0.9, help='Initial learnin
 parser.add_argument('--optimizer', default='adam', help='adam or momentum [default: adam]')
 parser.add_argument('--decay_step', type=int, default=200000, help='Decay step for lr decay [default: 200000]')
 parser.add_argument('--decay_rate', type=float, default=0.7, help='Decay rate for lr decay [default: 0.8]')
-parser.add_argument('--rotation_number', type=int, default=4, help='number of rotations for training')
+parser.add_argument('--model_save_path', default='modelA.ckpt', help='Log dir [default: log]')
+parser.add_argument('--rotation_list', type=str, default=[0, 3, 5, 6], help=ROTATION_LIST_HELP)
 parser.add_argument('--debug_mode', type=bool, default=False, help='fast debug mode')
 
 FLAGS = parser.parse_args()
@@ -43,9 +50,14 @@ MOMENTUM = FLAGS.momentum
 OPTIMIZER = FLAGS.optimizer
 DECAY_STEP = FLAGS.decay_step
 DECAY_RATE = FLAGS.decay_rate
-ROTATION_NUMBER = FLAGS.rotation_number
+ROTATION_LIST = ast.literal_eval(FLAGS.rotation_list)
+MODEL_SAVE_PATH = FLAGS.model_save_path
+ROTATION_NUMBER = len(ROTATION_LIST)
 PROFILE_DEBUG = FLAGS.debug_mode
+print('ROTATION_NUMBER is :' + str(ROTATION_NUMBER))
+print('ROTATION_LIST is :' + str(ROTATION_LIST))
 print('PROFILE_DEBUG is: ' + str(PROFILE_DEBUG))
+print('MODEL_SAVE_PATH is: ' + str(MODEL_SAVE_PATH))
 
 MODEL = importlib.import_module(FLAGS.model) # import network module
 MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model+'.py')
@@ -121,7 +133,7 @@ def train():
             loss = MODEL.get_loss(pred, labels_pl, end_points)
             tf.summary.scalar('loss', loss)
 
-            correct = tf.equal(tf.argmax(pred, 1), tf.to_int64(labels_pl))
+            correct = tf.equal(tf.argmax(pred, 1), tf.cast(labels_pl, tf.int64))
             accuracy = tf.reduce_sum(tf.cast(correct, tf.float32)) / float(BATCH_SIZE)
             tf.summary.scalar('accuracy', accuracy)
 
@@ -176,7 +188,7 @@ def train():
             
             # Save the variables to disk.
             if epoch % 10 == 0 or PROFILE_DEBUG:
-                save_path = saver.save(sess, os.path.join(LOG_DIR, "modelA.ckpt"))
+                save_path = saver.save(sess, os.path.join(LOG_DIR, MODEL_SAVE_PATH + ".ckpt"))
                 log_string("Model saved in file: %s" % save_path)
 
 
@@ -216,7 +228,7 @@ def train_one_epoch(sess, ops, train_writer):
 
             rotation_labels = list(range(ROTATION_NUMBER))
             # rotationLabels = rotationService.get_rotations_labels(BATCH_SIZE)
-            rotated_data = rotationService.get_images_rotation_according_to_rotation_label(rotated_data)
+            rotated_data = rotationService.get_images_rotation_according_to_rotation_label(rotated_data, ROTATION_LIST)
             rotation_labels = np.repeat(rotation_labels, end_idx - start_idx)
             rotated_data, rotation_labels, _ = provider.shuffle_data(rotated_data, np.squeeze(rotation_labels))
 
@@ -256,12 +268,12 @@ def eval_one_epoch(sess, ops, test_writer):
 
         file_size = current_data.shape[0]
         num_batches = file_size // BATCH_SIZE
-        
+        if PROFILE_DEBUG: num_batches = 1
         for batch_idx in range(num_batches):
             start_idx = batch_idx * BATCH_SIZE
             end_idx = (batch_idx+1) * BATCH_SIZE
             batch_data = current_data[start_idx:end_idx, :, :]
-            batch_data = rotationService.get_images_rotation_according_to_rotation_label(batch_data)
+            batch_data = rotationService.get_images_rotation_according_to_rotation_label(batch_data, ROTATION_LIST)
             rotation_labels = list(range(ROTATION_NUMBER))
             rotation_labels = np.repeat(rotation_labels, end_idx - start_idx)
 

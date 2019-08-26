@@ -31,7 +31,8 @@ parser.add_argument('--decay_step', type=int, default=200000, help='Decay step f
 parser.add_argument('--decay_rate', type=float, default=0.7, help='Decay rate for lr decay [default: 0.8]')
 parser.add_argument('--rotation_number', type=int, default=4, help='number of rotations for training')
 parser.add_argument('--debug_mode', type=bool, default=False, help='fast debug mode')
-parser.add_argument('--model_path', default='log/modelA.ckpt', help='model checkpoint file path [default: log/model.ckpt]')
+parser.add_argument('--model_restore_path', default='modelA', help='model checkpoint file path [default: log/model.ckpt]')
+parser.add_argument('--model_save_path', default='modelTrained', help='Log dir [default: log]')
 
 FLAGS = parser.parse_args()
 
@@ -45,9 +46,12 @@ OPTIMIZER = FLAGS.optimizer
 DECAY_STEP = FLAGS.decay_step
 DECAY_RATE = FLAGS.decay_rate
 ROTATION_NUMBER = FLAGS.rotation_number
-MODEL_PATH = FLAGS.model_path
+MODEL_RESTORE_PATH = FLAGS.model_restore_path
+MODEL_SAVE_PATH = FLAGS.model_save_path
 PROFILE_DEBUG = FLAGS.debug_mode
 print('PROFILE_DEBUG is: ' + str(PROFILE_DEBUG))
+print('MODEL_RESTORE_PATH is: ' + str(MODEL_RESTORE_PATH))
+print('MODEL_SAVE_PATH is: ' + str(MODEL_SAVE_PATH))
 
 MODEL = importlib.import_module(FLAGS.model)  # import network module
 MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model + '.py')
@@ -134,7 +138,7 @@ def train():
         config.log_device_placement = False
         sess = tf.Session(config=config)
 
-        saver.restore(sess, MODEL_PATH)
+        saver.restore(sess, os.path.join(LOG_DIR, MODEL_RESTORE_PATH + ".ckpt"))
         log_string("Model restored.")
 
         restore_layer = tf.get_default_graph().get_tensor_by_name(AFTER_EMBEDDING_LAYER)
@@ -215,7 +219,7 @@ def train():
 
             # Save the variables to disk.
             if epoch % 10 == 0 or PROFILE_DEBUG:
-                save_path = saver.save(sess, os.path.join(LOG_DIR, "classifyModel_stop_gradient_3_fc_4rot.ckpt"))
+                save_path = saver.save(sess, os.path.join(LOG_DIR, MODEL_SAVE_PATH + ".ckpt"))
                 log_string("Model saved in file: %s" % save_path)
 
 
