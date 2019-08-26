@@ -33,6 +33,8 @@ parser.add_argument('--rotation_number', type=int, default=4, help='number of ro
 parser.add_argument('--debug_mode', type=bool, default=False, help='fast debug mode')
 parser.add_argument('--model_restore_path', default='modelA', help='model checkpoint file path [default: log/model.ckpt]')
 parser.add_argument('--model_save_path', default='modelTrained', help='Log dir [default: log]')
+parser.add_argument('--freeze_weights', type=bool, default=True, help='freeze embedding weights during training')
+parser.add_argument('--fc_layers_number', type=int, default=3, help='2 or 3 new fully connected layers on top of pretrained rotation net')
 
 FLAGS = parser.parse_args()
 
@@ -48,10 +50,14 @@ DECAY_RATE = FLAGS.decay_rate
 ROTATION_NUMBER = FLAGS.rotation_number
 MODEL_RESTORE_PATH = FLAGS.model_restore_path
 MODEL_SAVE_PATH = FLAGS.model_save_path
+STOP_GRADIENT = FLAGS.freeze_weights
+FC_LAYERS = FLAGS.fc_layers_number
 PROFILE_DEBUG = FLAGS.debug_mode
 print('PROFILE_DEBUG is: ' + str(PROFILE_DEBUG))
 print('MODEL_RESTORE_PATH is: ' + str(MODEL_RESTORE_PATH))
 print('MODEL_SAVE_PATH is: ' + str(MODEL_SAVE_PATH))
+print('STOP_GRADIENT is: ' + str(STOP_GRADIENT))
+print('Fully connected on top layers number is: ' + str(FC_LAYERS))
 
 MODEL = importlib.import_module(FLAGS.model)  # import network module
 MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model + '.py')
@@ -142,23 +148,18 @@ def train():
         log_string("Model restored.")
 
         restore_layer = tf.get_default_graph().get_tensor_by_name(AFTER_EMBEDDING_LAYER)
-        restore_layer = tf.stop_gradient(restore_layer)
-        pred = tf.stop_gradient(pred)
+        if STOP_GRADIENT:
+            restore_layer = tf.stop_gradient(restore_layer)
 
+        pred = tf.stop_gradient(pred)
         net = tf_util.fully_connected(restore_layer, 512, bn=True, is_training=is_training_pl,
                                       scope='retrainFC1', bn_decay=bn_decay)
-        net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training_pl,
-                                      scope='retrainFC2', bn_decay=bn_decay)
-        net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training_pl,
-                              scope='dp1')
+        if FC_LAYERS is 3:
+            net = tf_util.fully_connected(net, 256, bn=True, is_training=is_training_pl,
+                                          scope='retrainFC2', bn_decay=bn_decay)
 
+        net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training_pl, scope='dp1')
         pred = tf_util.fully_connected(net, NUM_CLASSES, activation_fn=None, scope='retrainFC3')
-
-        # pred = tf_util.fully_connected(bottleneck_layer, 256, activation_fn=None, scope='fc4')
-        # pred = tf_util.fully_connected(pred, NUM_CLASSES, activation_fn=None, scope='fc5')
-
-        # get the variables declared in the scope "trainable_section"
-        trainable_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "trainable_section")
 
         tf.summary.FileWriter(os.path.join(LOG_DIR, 'train'), sess.graph)
         loss = MODEL.get_loss(pred, labels_pl, end_points)
