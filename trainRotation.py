@@ -244,7 +244,7 @@ def train_one_epoch(sess, ops, train_writer):
             total_seen += BATCH_SIZE*ROTATION_NUMBER
             loss_sum += loss_val
 
-        log_string('mean loss: %f' % (loss_sum / float(num_batches)*ROTATION_NUMBER))
+        log_string('mean loss: %f' % (loss_sum / (float(num_batches)*ROTATION_NUMBER)))
         log_string('accuracy: %f' % (total_correct / float(total_seen)))
         log_string('accuracy total correct %f' % total_correct)
         log_string('accuracy total seen: %f' % (float(total_seen)))
