@@ -35,7 +35,7 @@ parser.add_argument('--optimizer', default='adam', help='adam or momentum [defau
 parser.add_argument('--decay_step', type=int, default=200000, help='Decay step for lr decay [default: 200000]')
 parser.add_argument('--decay_rate', type=float, default=0.7, help='Decay rate for lr decay [default: 0.8]')
 parser.add_argument('--model_save_path', default='modelA.ckpt', help='Log dir [default: log]')
-parser.add_argument('--rotation_list', type=str, default=[0, 3, 5, 6], help=ROTATION_LIST_HELP)
+parser.add_argument('--rotation_list', type=str, default='[0,3,5,6]', help=ROTATION_LIST_HELP)
 parser.add_argument('--debug_mode', type=bool, default=False, help='fast debug mode')
 
 FLAGS = parser.parse_args()
