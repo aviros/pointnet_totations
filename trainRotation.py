@@ -157,7 +157,6 @@ def train():
         sess = tf.Session(config=config)
 
         # Add summary writers
-        #merged = tf.merge_all_summaries()
         merged = tf.summary.merge_all()
         train_writer = tf.summary.FileWriter(os.path.join(LOG_DIR, 'train'),
                                   sess.graph)
@@ -227,7 +226,6 @@ def train_one_epoch(sess, ops, train_writer):
             rotated_data = provider.jitter_point_cloud(rotated_data)
 
             rotation_labels = list(range(ROTATION_NUMBER))
-            # rotationLabels = rotationService.get_rotations_labels(BATCH_SIZE)
             rotated_data = rotationService.get_images_rotation_according_to_rotation_label(rotated_data, ROTATION_LIST)
             rotation_labels = np.repeat(rotation_labels, end_idx - start_idx)
             rotated_data, rotation_labels, _ = provider.shuffle_data(rotated_data, np.squeeze(rotation_labels))

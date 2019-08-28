@@ -53,6 +53,8 @@ MODEL_SAVE_PATH = FLAGS.model_save_path
 STOP_GRADIENT = FLAGS.freeze_weights
 FC_LAYERS = FLAGS.fc_layers_number
 PROFILE_DEBUG = FLAGS.debug_mode
+LOG_DIR = FLAGS.log_dir
+
 print('PROFILE_DEBUG is: ' + str(PROFILE_DEBUG))
 print('MODEL_RESTORE_PATH is: ' + str(MODEL_RESTORE_PATH))
 print('MODEL_SAVE_PATH is: ' + str(MODEL_SAVE_PATH))
@@ -61,7 +63,6 @@ print('Fully connected on top layers number is: ' + str(FC_LAYERS))
 
 MODEL = importlib.import_module(FLAGS.model)  # import network module
 MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model + '.py')
-LOG_DIR = FLAGS.log_dir
 if not os.path.exists(LOG_DIR): os.mkdir(LOG_DIR)
 os.system('cp %s %s' % (MODEL_FILE, LOG_DIR))  # bkp of model def
 os.system('cp trainClassifiers.py %s' % (LOG_DIR))  # bkp of train procedure
@@ -178,8 +179,6 @@ def train():
             optimizer = tf.train.AdamOptimizer(learning_rate)
         train_op = optimizer.minimize(loss, global_step=batch)
 
-        # train_op = optimizer.minimize(loss, global_step=batch, var_list=trainable_vars)
-
         # Add summary writers
         # merged = tf.merge_all_summaries()
         merged = tf.summary.merge_all()
@@ -195,12 +194,6 @@ def train():
         print([str(i.name) for i in not_initialized_vars])  # only for testing
         if len(not_initialized_vars):
             sess.run(tf.variables_initializer(not_initialized_vars))
-
-        # init = tf.global_variables_initializer()
-        # To fix the bug introduced in TF 0.12.1 as in
-        # http://stackoverflow.com/questions/41543774/invalidargumenterror-for-tensor-bool-tensorflow-0-12-1
-        # sess.run(init)
-        # sess.run(init, {is_training_pl: True})
 
         ops = {'pointclouds_pl': pointclouds_pl,
                'labels_pl': labels_pl,
