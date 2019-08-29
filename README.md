@@ -1,7 +1,7 @@
 ## *Semi-Supervised Classification By Predicting Image Rotations In Point Cloud*
 
 ### Introduction
-In this work, 3D image features are learned in a self-supervised way by training pointNet \cite{DBLP:conf/cvpr/QiSMG17} network to recognize the 3d rotation that been applied to an input image. Those learned features are being used for classification task learned on top of this base network.
+In this work, 3D image features are learned in a self-supervised way by training pointNet network to recognize the 3d rotation that been applied to an input image. Those learned features are being used for classification task learned on top of this base network.
 
 In this repository I uploaded code and data.
 
