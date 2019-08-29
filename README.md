@@ -18,6 +18,7 @@ sudo pip install h5py
 ### Usage
 To train a complete model to classify point clouds sampled from 3D shapes run the following bash script:
 
+	!chmod 777 train.sh
      run.sh
      
 The training split into two parts and can be run with different parameters (see code): 
