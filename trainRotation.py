@@ -63,7 +63,7 @@ MODEL = importlib.import_module(FLAGS.model) # import network module
 MODEL_FILE = os.path.join(BASE_DIR, 'models', FLAGS.model+'.py')
 LOG_DIR = FLAGS.log_dir
 if not os.path.exists(LOG_DIR): os.mkdir(LOG_DIR)
-os.system('cp %s %s' % (MODEL_FILE, LOG_DIR)) # bkp of model def
+os.system('cp %s %s' % (MODEL_FILE.replace("\\", ""), LOG_DIR)) # bkp of model def
 os.system('cp trainRotation.py %s' % (LOG_DIR)) # bkp of train procedure
 LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
 LOG_FOUT.write(str(FLAGS)+'\n')
@@ -186,7 +186,7 @@ def train():
             eval_one_epoch(sess, ops, test_writer)
             
             # Save the variables to disk.
-            if epoch % 10 == 0 or PROFILE_DEBUG:
+            if epoch % 5 == 0 or PROFILE_DEBUG:
                 save_path = saver.save(sess, os.path.join(LOG_DIR, MODEL_SAVE_PATH + ".ckpt"))
                 log_string("Model saved in file: %s" % save_path)
 
