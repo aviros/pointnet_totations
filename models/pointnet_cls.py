@@ -21,10 +21,10 @@ def get_model(point_cloud, is_training, rotation_number=1, bn_decay=None):
     num_point = point_cloud.get_shape()[1].value
     end_points = {}
 
-    with tf.variable_scope('transform_net1') as sc:
-        transform = input_transform_net(point_cloud, is_training, bn_decay, K=3)
-    point_cloud_transformed = tf.matmul(point_cloud, transform)
-    input_image = tf.expand_dims(point_cloud_transformed, -1)
+    # with tf.variable_scope('transform_net1') as sc:
+        # transform = input_transform_net(point_cloud, is_training, bn_decay, K=3)
+    # point_cloud_transformed = tf.matmul(point_cloud, transform)
+    input_image = tf.expand_dims(point_cloud, -1)
 
     net = tf_util.conv2d(input_image, 64, [1,3],
                          padding='VALID', stride=[1,1],
