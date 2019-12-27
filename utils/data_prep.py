@@ -2,7 +2,7 @@ import argparse
 from pyntcloud import PyntCloud
 import os
 import numpy as np
-import utils.data_prep_util as data_util
+import data_prep_util as data_util
 import provider
 import h5py
 import math
